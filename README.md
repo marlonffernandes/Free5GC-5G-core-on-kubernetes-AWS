@@ -55,5 +55,8 @@ kubectl get pods -n prometheus
 
 #check grafana service
 kubectl get svc -n prometheus | grep grafana
+
+#access local SSH service port
+ssh -i "yourkey" -L localhost:5000:localhost:5000 user@EC2-IP
 ```
 
