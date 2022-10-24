@@ -1,2 +1,2 @@
-# Free5GC-5G-core-on-kubernetes-AWS
+# Free5GC 5G Core on Kubernetes (AWS EC2) 
 Deploy 5G Core SA on Kubernetes | minikube &amp; kubectl on AWS | Grafana KPI Monitoring
