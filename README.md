@@ -23,15 +23,18 @@ Deploy 5G Core SA on Kubernetes | minikube &amp; kubectl on AWS | Grafana KPI Mo
 - Grafana (multi-platform open source analytics and interactive visualization web application)
 
 ## 📚 Tutorial
-- Launch AWS EC2 Ubuntu (4GB RAM and 2vCPUs minimum)
+1- Launch AWS EC2 Ubuntu (4GB RAM and 2vCPUs minimum)
 
 ```
 sudo apt update -y
 sudo apt upgrade -y
 sudo apt install ansible -y
 ```
-- Run Ansible playbook.yml
+2- Run Ansible playbook.yml
 ```
+#check docker
+sudo systemctl status docker
+
 #check minikube
 minikube status
 
