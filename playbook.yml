@@ -1,0 +1,125 @@
+- 
+  name: 5G Core SA network & RAN on Kubernetes with Grafana KPI Monitoring (AWS EC2)
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Update all packages to their latest version
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+
+    - name: Install Transport-HTTPS
+      apt:
+        name: apt-transport-https
+        state: latest
+
+    - name: Install curl
+      apt:
+        name: curl
+        state: latest
+
+    - name: Add the GPG key for the official Docker repository to your system
+      shell: |
+        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+    - name: Add the Docker repository to APT sources
+      shell: |
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+    - name: Again Update all packages to their latest version
+      apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+    
+    - name: Install Docker
+      apt:
+        name: docker-ce
+        state: latest
+
+    - name: Create the docker group and add user
+      shell: |
+        sudo groupadd docker
+
+    - name: Add your user to the docker group
+      shell: |
+        sudo usermod -aG docker $USER
+
+    - name: Activate changes to groups
+      shell: |
+        sudo newgrp docker
+
+    - name: Download minikube
+      local_action:
+        module: get_url
+        url: https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
+        dest: /root
+
+    - name: Copy file to minikube folder
+      ansible.builtin.copy:
+        src: minikube-linux-amd64
+        dest: /usr/local/bin/minikube
+
+    - name: Add "+x"
+      file: dest=/usr/local/bin/minikube mode=+x
+
+    - name: Start minikube and use Calico as CNI plugin
+      shell: |
+        minikube start --driver=docker --cpus=2 --memory=4g --disk-size=20g --cni=calico --force
+
+    - name: Check minikube's status.
+      command: minikube status
+      register: minikube_status
+      changed_when: false
+      ignore_errors: true
+
+    - name: Start minikube if it's not running.
+      command: minikube start
+      when: "not minikube_status.stdout or 'Running' not in minikube_status.stdout"
+
+    - name: Install kubectl
+      shell: |
+        curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl
+        chmod +x kubectl
+        sudo mv kubectl /usr/local/bin/
+
+    - name: Install Helm
+      shell: |
+        curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3
+        chmod 700 get_helm.sh
+        ./get_helm.sh
+
+    - name: Download and install Multus CNI
+      shell: |
+        git clone https://github.com/k8snetworkplumbingwg/multus-cni.git
+        cat ./multus-cni/deployments/multus-daemonset.yml | kubectl apply -f -
+
+    - name: Create namespace for Free5GC
+      shell: |
+        kubectl create namespace free5gc
+
+    - name: Add Helm repository
+      shell: |
+        helm repo add towards5gs 'https://raw.githubusercontent.com/Orange-OpenSource/towards5gs-helm/main/repo/'
+        helm repo update
+
+      # deploy helm
+      # -n free5gc(namespace)
+      # free5gc-v1(name of the helm deployment)
+      # towards5gs/free5gc(chart name)
+    - name: Deploy Helm
+      shell: |
+        helm -n free5gc install free5gc-v1 towards5gs/free5gc
+
+    - name: Kubernetes port forward -> NodePort service (5000)
+      shell: |
+        kubectl port-forward --namespace free5gc svc/webui-service 5000:5000
+
+    - name: Add Prometheus Helm repo and update
+      shell: |
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
+
+    - name: Create namespace for Prometheus and deploy chart
+      shell: |
+        kubectl create namespace prometheus
+        helm install prometheus prometheus-community/kube-prometheus-stack -n prometheus
+
+    - name: Kubernetes port forward -> Prometheus-Grafana service (8080)
+      shell: |
+        kubectl port-forward -n prometheus svc/prometheus-grafana 8080:80
