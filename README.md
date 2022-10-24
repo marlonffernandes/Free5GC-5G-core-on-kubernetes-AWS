@@ -12,6 +12,16 @@ Deploy 5G Core SA on Kubernetes | minikube &amp; kubectl on AWS | Grafana KPI Mo
 - Docker
 - Linux
 
+## 📚 Review
+- minikube (minikube implements a local Kubernetes cluster)
+- CNI Calico plugin (features for container network interface)
+- kubectl (the Kubernetes command-line tool, kubectl, allows you to run commands against Kubernetes clusters)
+- Helm (helps you manage Kubernetes applications )
+- Multus-CNI (enables attaching multiple network interfaces to pods)
+- Free5GC (open-source project for 5th generation mobile core networks)
+- Prometheus (monitoring system with a dimensional data model)
+- Grafana (multi-platform open source analytics and interactive visualization web application)
+
 ## 📚 Tutorial
 - Launch AWS EC2 Ubuntu (4GB RAM and 2vCPUs minimum)
 
@@ -20,5 +30,30 @@ sudo apt update -y
 sudo apt upgrade -y
 sudo apt install ansible -y
 ```
-- Run playbook.yml
+- Run Ansible playbook.yml
+```
+#check minikube
+minikube status
+
+#check kubectl
+kubectl version -o yaml
+
+#check helm
+helm list -A
+
+#check pods
+kubectl get pods --all-namespaces
+
+#check free5gc pods
+kubectl get pods -n free5gc
+
+#check free5gc service
+kubectl get svc -n free5gc
+
+#check prometheus pods
+kubectl get pods -n prometheus
+
+#check grafana service
+kubectl get svc -n prometheus | grep grafana
+```
 
